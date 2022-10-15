@@ -1,4 +1,4 @@
-# MLOps Club
+# 📣 Welcome to the MLOps Club
 
 This repo is for our group project, trying to build an end-to-end MLOps platform.
 
