@@ -1,3 +1,10 @@
+"""
+Configuration for Metaflow.
+
+To arrive at this file, we referenced the official Metaflow CloudFormation template found here:
+https://github.com/outerbounds/metaflow-tools/blob/master/aws/cloudformation/metaflow-cfn-template.yml
+"""
+
 from dataclasses import dataclass
 from typing import ClassVar, Literal, Optional
 from pydantic import BaseSettings, conint
@@ -5,7 +12,7 @@ from pydantic import BaseSettings, conint
 
 @dataclass(frozen=True)
 class ServiceInfoConstants:
-    """Mappings.ServiceInfo section of original Metaflow CloudFormation template."""
+    """Mappings.ServiceInfo section of official Metaflow CloudFormation template."""
 
     STACK_NAME: ClassVar[str] = "metaflow-infrastructure"
     SERVICE_NAME: ClassVar[str] = "metadata-service-v2"
@@ -21,7 +28,7 @@ class ServiceInfoConstants:
 
 @dataclass(frozen=True)
 class ServiceInfoUIServiceConstants:
-    """Mappings.ServiceInfoUIService section of the original Metaflow CloudFormation template."""
+    """Mappings.ServiceInfoUIService section of the official Metaflow CloudFormation template."""
 
     STACK_NAME: ClassVar[str] = "metaflow-infrastructure"
     SERVICE_NAME: ClassVar[str] = "metaflow-ui-service"
@@ -36,7 +43,7 @@ class ServiceInfoUIServiceConstants:
 
 
 class ServiceInfoUIStaticConstants:
-    """Mappings.ServiceInfoUIStatic section of the original Metaflow CloudFormation template."""
+    """Mappings.ServiceInfoUIStatic section of the official Metaflow CloudFormation template."""
 
     STACK_NAME: str = "metaflow-infrastructure"
     SERVICE_NAME: str = "metadata-ui-static"
@@ -52,7 +59,7 @@ class ServiceInfoUIStaticConstants:
 
 class MetaflowStackConfig(BaseSettings):
     """
-    Parameters of the original Metaflow CloudFormation template.
+    Parameters of the official Metaflow CloudFormation template.
 
     :param sagemaker_instance_type: Instance type for Sagemaker Notebook.
     :param vpc_cidr: CIDR for the Metaflow VPC

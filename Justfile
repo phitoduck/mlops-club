@@ -1,9 +1,14 @@
+# This is a "Justfile". "just" is a task-runner similar to "make", but much less frustrating.
+# There is a VS Code extension for just that provides syntax highlighting.
+#
+# Execute any commands in this file by running "just <command name>", e.g. "just install".
+
 # install the project's python packages and other useful
 install: require-venv
     # install useful VS Code extensions
     which code && code --install-extension njpwerner.autodocstring
     # install python packages not belonging to any particular package in this repo,
-    # but important for
+    # but important for development
     python -m pip install \
         pre-commit \
         phitoduck-projen \
