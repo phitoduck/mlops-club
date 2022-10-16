@@ -21,6 +21,8 @@ import json
 from phito_projen import PythonPackage
 from phito_projen.components.templatized_file import TemplatizedFile
 from projen import Project
+from projen.awscdk import AwsCdkPythonApp
+from projen.python import VenvOptions
 
 repo = Project(name="mlops-club")
 
@@ -31,28 +33,45 @@ metaflow_deployment_package = PythonPackage(
     module_name="metaflow_iac",
 )
 
-sample_vscode_settings_json = TemplatizedFile(
+metaflow_cdk_package = AwsCdkPythonApp(
+    name="awscdk-metaflow",
+    outdir="awscdk-metaflow",
+    module_name="cdk_metaflow",
+    cdk_version="2.45.0",
+    author_email="eric.russia97@gmail.com",
+    author_name="The MLOps Club",
+    version="0.0.0",
+    venv_options=VenvOptions(envdir="../venv"),
+    deps=["pydantic"],
+    parent=repo,
+)
+
+vscode_settings_kwargs = dict(
     project=repo,
-    file_path=".vscode/settings.json",
+    file_path=".vscode/example-settings.json",
     make_comment_fn=lambda line: f"// {line}",
     supports_comments=True,
     template_body=json.dumps(
         {
             "restructuredtext.confPath": "",
-            "autoDocstring.customTemplatePath": "./.vscode/rootski-python-docstring-template.mustache",
+            "autoDocstring.customTemplatePath": "./.vscode/python-docstring-template.mustache",
             "python.linting.pylintEnabled": True,
             "python.linting.pylintArgs": ["--rcfile=./linting/.pylintrc"],
             "python.formatting.provider": "black",
             "python.formatting.blackArgs": ["--line-length=112"],
             "python.linting.flake8Enabled": True,
             "python.linting.flake8Args": ["--config==./linting/.flake8", "--max-line-length=112"],
+            "editor.formatOnSave": True,
         },
         indent=4,
     ),
-    is_sample=True,
 )
+vscode_settings_json = TemplatizedFile(**vscode_settings_kwargs)
+vscode_settings_kwargs["is_sample"] = True
+vscode_settings_kwargs["file_path"] = ".vscode/settings.json"
+sample_vscode_settings_json = TemplatizedFile(**vscode_settings_kwargs)
 
-repo.gitignore.add_patterns("venv", "*cache*", ".env")
+repo.gitignore.add_patterns("venv", "*cache*", ".env", ".vscode/settings.json")
 
 # generate/update boilerplate project files in this repository
 repo.synth()

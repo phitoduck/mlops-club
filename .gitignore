@@ -4,6 +4,8 @@ node_modules/
 !/.projen/tasks.json
 !/.projen/deps.json
 !/.projen/files.json
+!/.vscode/example-settings.json
 venv
 *cache*
 .env
+.vscode/settings.json

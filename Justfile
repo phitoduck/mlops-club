@@ -18,6 +18,41 @@ install: require-venv
     # install git lfs for downloading rootski CSVs and other large files in the repo
     git lfs install
 
+# generate CloudFormation from the code in "awscdk-metaflow"
+cdk-synth: require-venv login-to-aws
+    cd awscdk-metaflow \
+    && cdk synth --all --profile mlops-club
+
+# Ensure that an "mlops-club" AWS CLI profile is configured. Then go through an AWS SSO
+# sign in flow to get temporary credentials for that profile. If this command finishes successfully,
+# you will be able to run AWS CLI commands against the MLOps club account using '--profile mlops-club'
+login-to-aws:
+    #!/bin/bash
+    MLOPS_CLUB_AWS_PROFILE_NAME="mlops-club"
+    MLOPS_CLUB_AWS_ACCOUNT_ID="630013828440"
+    MLOPS_CLUB_SSO_START_URL="https://d-926768adcc.awsapps.com/start"
+
+    # skip if already logged in
+    aws sts get-caller-identity --profile ${MLOPS_CLUB_AWS_PROFILE_NAME} | cat | grep 'UserId' > /dev/null \
+        && echo "[mlops-club] ✅ Logged in with aws cli" \
+        && exit 0
+
+    # configure an "[mlops-club]" profile in aws-config
+    echo "[mlops-club] Configuring an AWS profile called '${MLOPS_CLUB_AWS_PROFILE_NAME}'"
+    aws configure set sso_start_url ${MLOPS_CLUB_SSO_START_URL} --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
+    aws configure set sso_region us-west-2 --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
+    aws configure set sso_account_id ${MLOPS_CLUB_AWS_ACCOUNT_ID} --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
+    aws configure set sso_role_name AdministratorAccess --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
+    aws configure set region us-west-2 --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
+
+    # login to AWS using single-sign-on
+    aws sso login --profile ${MLOPS_CLUB_AWS_PROFILE_NAME} \
+    && echo '' \
+    && echo "[mlops-club] ✅ Login successful. AWS CLI commands will now work by adding the '--profile ${MLOPS_CLUB_AWS_PROFILE_NAME}' 😃" \
+    && echo "             Your '${MLOPS_CLUB_AWS_PROFILE_NAME}' profile has temporary credentials using this identity:" \
+    && echo '' \
+    && aws sts get-caller-identity --profile ${MLOPS_CLUB_AWS_PROFILE_NAME} | cat
+    
 # certain boilerplate files like setup.cfg, setup.py, and .gitignore are "locked";
 # you can modify their contents by editing the .projenrc.py file in the root of the repo.
 update-boilerplate-files: require-venv
@@ -63,3 +98,5 @@ require-venv:
         """))
 
         sys.exit(1)
+
+    print("[mlops-club] ✅ Virtual environment is active")
