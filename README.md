@@ -7,7 +7,9 @@ This repo is for our group project, trying to build an end-to-end MLOps platform
 - This will be a fully-functional, opinionated MLOps platform.
   It should be considered a reference implementation that can be forked and adapted to a different set of opinions.
 - It should be useful the average hobbyist, i.e. cheap to run, doesn't need a whole team to maintain, etc.
-- BUT, this is a learning project, so the platform should have a straightforward way to scale to small-to-medium-sized enterprise needs.
+- BUT, this project should develop our careers, so the platform should have a straightforward way 
+  to scale to small-to-medium-sized enterprise needs.
+- To reduce complexity, we'll start off as a monorepo, and split off into separate repos if the monorepo becomes challenging.
 
 ## Contributing
 
