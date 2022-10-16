@@ -26,13 +26,6 @@ from projen.python import VenvOptions
 
 repo = Project(name="mlops-club")
 
-metaflow_deployment_package = PythonPackage(
-    parent=repo,
-    version="0.0.0",
-    name="metaflow-deployment",
-    module_name="metaflow_iac",
-)
-
 metaflow_cdk_package = AwsCdkPythonApp(
     name="awscdk-metaflow",
     outdir="awscdk-metaflow",
