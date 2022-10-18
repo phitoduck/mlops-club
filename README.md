@@ -11,11 +11,12 @@ This repo is for our group project, trying to build an end-to-end MLOps platform
   to scale to small-to-medium-sized enterprise needs.
 - To reduce complexity, we'll start off as a monorepo, and split off into separate repos if the monorepo becomes challenging.
 
-## Kickoff video
+## Project Kickoff video
 
 15 minutes if you watch on 2x speed 🔥
 
-[![Kickoff Video](./awscdk-metaflow/docs/kickoff-video-thumbnail.png)](https://youtu.be/8SLbvfX2cZY)
+<a href="https://youtu.be/8SLbvfX2cZY" target="_"><img src="./awscdk-metaflow/docs/kickoff-video-thumbnail.png" /></a>
+
 
 ## Contributing
 
