@@ -23,10 +23,19 @@ install: require-venv
     # install git lfs for downloading rootski CSVs and other large files in the repo
     git lfs install
 
+cdk-deploy: require-venv
+    cd awscdk-metaflow \
+    && CDK_DEFAULT_REGION=us-east-1 cdk deploy --all --diff --profile mlops-club --require-approval any-change
+
 # generate CloudFormation from the code in "awscdk-metaflow"
 cdk-synth: require-venv login-to-aws
     cd awscdk-metaflow \
     && cdk synth --all --profile mlops-club
+
+open-aws:
+    #!/bin/bash
+    MLOPS_CLUB_SSO_START_URL="https://d-926768adcc.awsapps.com/start"
+    open $MLOPS_CLUB_SSO_START_URL
 
 # Ensure that an "mlops-club" AWS CLI profile is configured. Then go through an AWS SSO
 # sign in flow to get temporary credentials for that profile. If this command finishes successfully,
@@ -36,19 +45,20 @@ login-to-aws:
     MLOPS_CLUB_AWS_PROFILE_NAME="mlops-club"
     MLOPS_CLUB_AWS_ACCOUNT_ID="630013828440"
     MLOPS_CLUB_SSO_START_URL="https://d-926768adcc.awsapps.com/start"
+    MLOPS_CLUB_SSO_REGION="us-west-2"
 
     # skip if already logged in
-    aws sts get-caller-identity --profile ${MLOPS_CLUB_AWS_PROFILE_NAME} | cat | grep 'UserId' > /dev/null \
-        && echo "[mlops-club] ✅ Logged in with aws cli" \
-        && exit 0
+    # aws sts get-caller-identity --profile ${MLOPS_CLUB_AWS_PROFILE_NAME} | cat | grep 'UserId' > /dev/null \
+    #     && echo "[mlops-club] ✅ Logged in with aws cli" \
+    #     && exit 0
 
     # configure an "[mlops-club]" profile in aws-config
     echo "[mlops-club] Configuring an AWS profile called '${MLOPS_CLUB_AWS_PROFILE_NAME}'"
     aws configure set sso_start_url ${MLOPS_CLUB_SSO_START_URL} --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
-    aws configure set sso_region us-west-2 --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
+    aws configure set sso_region ${MLOPS_CLUB_SSO_REGION} --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
     aws configure set sso_account_id ${MLOPS_CLUB_AWS_ACCOUNT_ID} --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
-    aws configure set sso_role_name AdministratorAccess --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
-    aws configure set region us-west-2 --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
+    # aws configure set sso_role_name AdministratorAccess --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
+    aws configure set region ${MLOPS_CLUB_SSO_REGION} --profile ${MLOPS_CLUB_AWS_PROFILE_NAME}
 
     # login to AWS using single-sign-on
     aws sso login --profile ${MLOPS_CLUB_AWS_PROFILE_NAME} \

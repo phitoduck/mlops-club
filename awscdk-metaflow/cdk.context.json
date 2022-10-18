@@ -4,5 +4,6 @@
     "us-west-2b",
     "us-west-2c",
     "us-west-2d"
-  ]
+  ],
+  "ami:account=630013828440:filters.image-type.0=machine:filters.name.0=amzn-ami-vpc-nat-*:filters.state.0=available:owners.0=amazon:region=us-west-2": "ami-08388cc24a4260acc"
 }

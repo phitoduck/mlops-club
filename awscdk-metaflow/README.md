@@ -21,6 +21,7 @@ a CloudFront distribution to serve the site to the world.
 
 1. [Metaflow's Architecture ↪️](https://outerbounds.com/engineering/service-architecture/)
 2. [Deploying Metaflow with CloudFormation ↪️](https://outerbounds.com/engineering/deployment/aws-managed/cloudformation/)
+3. [Github repo ↪️](https://github.com/Netflix/metaflow-service)for the metadata, UI, and db upgrade services. Note: one or more of these services go into the *same* docker image. I'm not sure which.
 
 ## Using CDK
 
@@ -40,3 +41,12 @@ You'll need AWS credentials for this. You'll also need the AWS CLI to be install
 Reach out to Eric to get an AWS user in our MLOps Club AWS account.
 Once you've set a username and password, you should be able to run `just cdk-synth` without needing
 to configure an AWS profile. Refer to the `Justfile` for details 🙂.
+
+## Learnings about Metaflow
+
+There is a "Metaflow Metadata Service" that queries a "Metadata Database (Postgres)"
+that the `metaflow` CLI uses to schedule jobs, check their status, etc.
+
+The metadata service has a Swagger page available at `/api/doc`.
+
+![Metadata service swagger page](./docs/metadata-backend-service.png)

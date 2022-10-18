@@ -11,7 +11,7 @@ from pydantic import BaseSettings, conint
 
 
 @dataclass(frozen=True)
-class ServiceInfoConstants:
+class MetaflowMetadataServiceConstants:
     """Mappings.ServiceInfo section of official Metaflow CloudFormation template."""
 
     STACK_NAME: ClassVar[str] = "metaflow-infrastructure"
@@ -24,6 +24,7 @@ class ServiceInfoConstants:
     PRIORITY: ClassVar[int] = 1
     DESIRED_COUNT: ClassVar[int] = 1
     ROLE: ClassVar[str] = ""
+    HEALTHCHECK_PATH: ClassVar[str] = "/ping"
 
 
 @dataclass(frozen=True)
@@ -45,16 +46,16 @@ class ServiceInfoUIServiceConstants:
 class ServiceInfoUIStaticConstants:
     """Mappings.ServiceInfoUIStatic section of the official Metaflow CloudFormation template."""
 
-    STACK_NAME: str = "metaflow-infrastructure"
-    SERVICE_NAME: str = "metadata-ui-static"
-    IMAGE_URL: str = "public.ecr.aws/outerbounds/metaflow_ui:v1.1.1"
-    CONTAINER_PORT: int = 3000
-    CONTAINER_CPU: int = 512
-    CONTAINER_MEMORY: int = 1024
-    PATH: str = "*"
-    PRIORITY: int = 1
-    DESIRED_COUNT: int = 1
-    ROLE: str = ""
+    STACK_NAME: ClassVar[str] = "metaflow-infrastructure"
+    SERVICE_NAME: ClassVar[str] = "metadata-ui-static"
+    IMAGE_URL: ClassVar[str] = "public.ecr.aws/outerbounds/metaflow_ui:v1.1.1"
+    CONTAINER_PORT: ClassVar[int] = 3000
+    CONTAINER_CPU: ClassVar[int] = 512
+    CONTAINER_MEMORY: ClassVar[int] = 1024
+    PATH: ClassVar[str] = "*"
+    PRIORITY: ClassVar[int] = 1
+    DESIRED_COUNT: ClassVar[int] = 1
+    ROLE: ClassVar[str] = ""
 
 
 class MetaflowStackConfig(BaseSettings):
@@ -138,13 +139,3 @@ class MetaflowStackConfig(BaseSettings):
     @property
     def enable_additional_worker_policy(self) -> bool:
         return bool(self.additional_worker_policy_arn)
-
-
-# Conditions:
-#   EnableAuth: !Equals [ !Ref APIBasicAuth, 'true']
-#   EnableRole: !Equals [ !Ref CustomRole, 'true']
-#   EnableFargateOnBatch: !Equals [ !Ref BatchType, 'fargate']
-#   EnableSagemaker: !Equals [ !Ref EnableSagemaker, 'true']
-#   IsGov: !Equals [ !Ref IAMPartition, 'aws-us-gov']
-#   EnableAddtionalWorkerPolicy: !Not [ !Equals [ !Ref AdditionalWorkerPolicyArn, ''] ]
-#   EnableUI: !Equals [ !Ref EnableUI, 'true']
