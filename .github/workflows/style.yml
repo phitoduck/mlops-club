@@ -27,7 +27,7 @@ jobs:
           use-rstcheck: false
           use-check-manifest: false
           use-pyroma: false
-          extra-black-options: ""
+          extra-black-options: "max-line-length = 112"
           extra-yapf-options: ""
           extra-isort-options: ""
           extra-docformatter-options: ""
@@ -35,7 +35,7 @@ jobs:
           extra-pydocstyle-options: ""
           extra-mypy-options: ""
           extra-pylint-options: ""
-          extra-flake8-options: "max-line-length = 90"
+          extra-flake8-options: "max-line-length = 112"
           extra-mccabe-options: ""
           extra-radon-options: ""
           extra-rstcheck-options: ""
