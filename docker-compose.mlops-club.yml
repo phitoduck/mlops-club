@@ -1,0 +1,161 @@
+# this compose file is a copy/paste of docker-compose.development.yml in the
+# metaflow-service GitHub repository with the UI and MinIO added
+#
+# NOTE: this docker-compose file should be run with 'brew install just && just run-local-metaflow'
+# (see the Justfile); that command clones the netflixoss/metaflow-ui and netflixoss/metaflow-service GitHub repos
+# and then copies this file into the metaflow-service/ folder before running it.
+
+version: "3"
+services:
+
+  # minio (simulated S3)
+  minio:
+    image: bitnami/minio:latest
+    environment:
+      MINIO_ROOT_USER: minio-root-user
+      MINIO_ROOT_PASSWORD: minio-root-password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # mortal process: use the minio CLI to create an initial bucket; NOTE: takes up 
+  # to 30 seconds to run metaflow flows won't work until this has finished. Can be confusing.
+  create_buckets:
+    image: minio/mc
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://minio:9000 minio-root-user minio-root-password;
+      /usr/bin/mc rm -r --force myminio/minio-metaflow-bucket;
+      /usr/bin/mc mb myminio/minio-metaflow-bucket;
+      /usr/bin/mc policy download myminio/minio-metaflow-bucket;
+      exit 0;
+      "
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  ui:
+    build:
+      context: ../metaflow-ui
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      METAFLOW_SERVICE: "http://localhost:8083/"
+
+  ui_backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui_service
+      args:
+        UI_ENABLED: 1
+    ports:
+      - "${MF_UI_METADATA_PORT:-8083}:${MF_UI_METADATA_PORT:-8083}"
+    volumes:
+      - ./services:/root/services
+      # - ${HOME}/.aws:/root/.aws
+    # Add container capability for benchmarking processes. required for py-spy
+    cap_add:
+      - SYS_PTRACE
+    environment:
+      MF_METADATA_DB_HOST: db
+      MF_METADATA_DB_PORT: 5432
+      MF_METADATA_DB_USER: postgres
+      MF_METADATA_DB_PSWD: postgres
+      MF_METADATA_DB_NAME: postgres
+      MF_UI_METADATA_PORT: ${MF_UI_METADATA_PORT:-8083}
+      MF_UI_METADATA_HOST: ${MF_UI_METADATA_HOST:-0.0.0.0}
+      MF_METADATA_DB_POOL_MIN: 1
+      MF_METADATA_DB_POOL_MAX: 10
+      LOGLEVEL: INFO
+      AIOPG_ECHO: 0
+      UI_ENABLED: 1
+      PREFETCH_RUNS_SINCE: 2592000 # 30 days in seconds
+      PREFETCH_RUNS_LIMIT: 1 # Prefetch only one run
+      S3_NUM_WORKERS: 2
+      CACHE_ARTIFACT_MAX_ACTIONS: 4
+      CACHE_DAG_MAX_ACTIONS: 4
+      CACHE_ARTIFACT_STORAGE_LIMIT: 16000000
+      CACHE_DAG_STORAGE_LIMIT: 16000000
+      WS_POSTPROCESS_CONCURRENCY_LIMIT: 8
+      FEATURE_PREFETCH_DISABLE: 0
+      FEATURE_CACHE_DISABLE: 0
+      FEATURE_S3_DISABLE: 0
+      FEATURE_REFINE_DISABLE: 0
+      FEATURE_WS_DISABLE: 0
+      FEATURE_HEARTBEAT_DISABLE: 0
+      FEATURE_DB_LISTEN_DISABLE: 0
+      FEATURE_ARTIFACT_SEARCH: 1
+      FEATURE_ARTIFACT_TABLE: 1
+      CUSTOM_QUICKLINKS: $CUSTOM_QUICKLINKS
+      NOTIFICATIONS: $NOTIFICATIONS
+      GA_TRACKING_ID: none
+      PLUGINS: $PLUGINS
+    depends_on:
+      - migration
+
+  metadata:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile.metadata_service
+    image: netflixoss/metaflow_metadata_service:v2.2.3
+    ports:
+      - "${MF_METADATA_PORT:-8080}:${MF_METADATA_PORT:-8080}"
+    volumes:
+      - ./services:/root/services
+    environment:
+      MF_METADATA_DB_HOST: db
+      MF_METADATA_DB_PORT: 5432
+      MF_METADATA_DB_USER: postgres
+      MF_METADATA_DB_PSWD: postgres
+      MF_METADATA_DB_NAME: postgres
+      MF_METADATA_PORT: ${MF_METADATA_PORT:-8080}
+      MF_METADATA_HOST: ${MF_METADATA_HOST:-0.0.0.0}
+      MF_MIGRATION_PORT: ${MF_MIGRATION_PORT:-8082}
+    depends_on:
+      - migration
+
+  migration:
+    command: ["/opt/latest/bin/python3", "/root/run_goose.py"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./services:/root/services
+    environment:
+      MF_METADATA_DB_HOST: db
+      MF_METADATA_DB_PORT: 5432
+      MF_METADATA_DB_USER: postgres
+      MF_METADATA_DB_PSWD: postgres
+      MF_METADATA_DB_NAME: postgres
+      MF_METADATA_PORT: ${MF_METADATA_PORT:-8080}
+      MF_METADATA_HOST: ${MF_METADATA_HOST:-0.0.0.0}
+      MF_MIGRATION_ENDPOINTS_ENABLED: 1
+      MF_MIGRATION_PORT: ${MF_MIGRATION_PORT:-8082}
+    depends_on:
+      - db
+
+  db:
+    image: "postgres:11"
+    command: ["postgres", "-c", "log_statement=none", "-c", "wal_level=logical"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_dev_data:/var/lib/postgresql/data2
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_dev_data:
