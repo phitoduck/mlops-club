@@ -203,6 +203,9 @@ class Webservice(Construct):
         ), "docker_image and docker_build_context cannot both be set"
         assert not (docker_image and docker_build_args), "docker_image and docker_build_args cannot both be set"
         assert not (docker_image and relative_dockerfile_path), "docker_image and dockerfile_path cannot both be set"
+        assert not (vpc_id and ecs_cluster_in_vpc), (
+            "vpc_id and ecs_cluster_in_vpc cannot both be set; the vpc associated with the cluster will be used when ecs_cluster_in_vpc is set"
+        )
         if not health_check_port:
             ports = load_balancer_to_container_port_mappings
             assert len(ports) == 1, (
@@ -215,7 +218,7 @@ class Webservice(Construct):
         )
 
         log_group = logs.LogGroup(self, id="LogGroup")
-        vpc: ec2.Vpc = create_or_lookup_vpc(scope=self, id_prefix=construct_id, vpc_id=vpc_id)
+        vpc: ec2.Vpc = ecs_cluster_in_vpc.vpc if ecs_cluster_in_vpc else create_or_lookup_vpc(scope=self, id_prefix=construct_id, vpc_id=vpc_id)
         self.load_balancer = load_balancer or elbv2.ApplicationLoadBalancer(
             self,
             f"{construct_id}ALB",
