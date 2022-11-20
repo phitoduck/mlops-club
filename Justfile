@@ -5,6 +5,7 @@
 
 AWS_PROFILE := "mlops-club"
 AWS_REGION := "us-west-2"
+GET_ACCOUNT_ID := "aws sts get-caller-identity --profile " + AWS_PROFILE + " | jq -r .Account"
 
 # install the project's python packages and other useful
 install: require-venv
@@ -31,6 +32,7 @@ cdk-deploy: require-venv
     cd awscdk-metaflow \
     && \
         AWS_PROFILE={{AWS_PROFILE}} \
+        AWS_ACCOUNT_ID=`{{GET_ACCOUNT_ID}}` \
         CDK_DEFAULT_REGION={{AWS_REGION}} \
         AWS_REGION={{AWS_REGION}} \
         cdk deploy --all --diff --profile {{AWS_PROFILE}} --require-approval any-change --region {{AWS_REGION}}
@@ -39,6 +41,7 @@ cdk-destroy: require-venv
     cd awscdk-metaflow \
     && \
         AWS_PROFILE={{AWS_PROFILE}} \
+        AWS_ACCOUNT_ID=`{{GET_ACCOUNT_ID}}` \
         CDK_DEFAULT_REGION={{AWS_REGION}} \
         cdk destroy --all --diff --profile {{AWS_PROFILE}} --region {{AWS_REGION}}
 

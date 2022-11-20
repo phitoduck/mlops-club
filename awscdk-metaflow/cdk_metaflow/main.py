@@ -100,7 +100,7 @@ class Metaflow(Construct):
     def __init__(
         self,
         scope: Construct,
-        id: str,
+        construct_id: str,
         vpc: Optional[ec2.Vpc] = None,
         vpc_cidr: Optional[str] = None,
         artifacts_bucket_name: Optional[str] = None,
@@ -108,7 +108,7 @@ class Metaflow(Construct):
         enable_sagemaker: Optional[bool] = False,
         **kwargs,
     ) -> None:
-        super().__init__(scope, id, **kwargs)
+        super().__init__(scope, construct_id, **kwargs)
 
         assert not (
             vpc and vpc_cidr
@@ -116,7 +116,7 @@ class Metaflow(Construct):
 
         vpc: ec2.Vpc = vpc or make_low_cost_vpc(scope=self, cidr=vpc_cidr)
         artifacts_bucket: s3.Bucket = lookup_or_create_artifacts_bucket(
-            self, id, artifacts_bucket_name=artifacts_bucket_name
+            self, construct_id, artifacts_bucket_name=artifacts_bucket_name
         )
         metadata_database = MetadataDatabase(
             self, id="metaflow-metadata-db", vpc=vpc, database_name="metaflow"
@@ -126,13 +126,13 @@ class Metaflow(Construct):
 
         sfn_state_ddb_table: dynamodb.Table = make_step_function_state_ddb_table(
             scope=self,
-            id_prefix=id,
+            id_prefix=construct_id,
         )
         ecs_s3_access_iam_role = make_ecs_s3_access_iam_role(
             allow_sagemaker=enable_sagemaker,
             artifacts_bucket_name=artifacts_bucket.bucket_name,
             scope=self,
-            id_prefix=id,
+            id_prefix=construct_id,
             flow_run_state_ddb_table_name=sfn_state_ddb_table.table_name,
         )
         self.make_output(
@@ -141,9 +141,9 @@ class Metaflow(Construct):
             "set [METAFLOW_ECS_S3_ACCESS_IAM_ROLE] as this value when running 'metaflow configure aws'",
         )
         compute_environment: batch.ComputeEnvironment = make_fargate_compute_environment(
-            scope=self, id_prefix=id, vpc_with_metadata_service=vpc
+            scope=self, id_prefix=construct_id, vpc_with_metadata_service=vpc
         )
-        batch_job_queue: batch.JobQueue = make_batch_job_queue(scope=self, id_prefix=id, compute_environments=[compute_environment])
+        batch_job_queue: batch.JobQueue = make_batch_job_queue(scope=self, id_prefix=construct_id, compute_environments=[compute_environment])
 
         self.make_output("METAFLOW_BATCH_JOB_QUEUE", batch_job_queue.job_queue_arn, "set [METAFLOW_BATCH_JOB_QUEUE] as this value when running 'metaflow configure aws'")
 
@@ -158,28 +158,28 @@ class Metaflow(Construct):
 
         ecs_cluster_in_vpc = ecs.Cluster(self, "metaflow-cluster", vpc=vpc)
 
-        # metadata_svc = MetadataService(
-        #     self,
-        #     "metaflow-metadata-service",
-        #     db_host=metadata_database.db_instance.db_instance_endpoint_address,
-        #     db_port=metadata_database.db_instance.db_instance_endpoint_port,
-        #     db_user=metadata_database.db_instance.secret.secret_value_from_json(
-        #         "username"
-        #     ).to_string(),
-        #     db_password_token=metadata_database.db_instance.secret.secret_value_from_json(
-        #         "password"
-        #     ).to_string(),
-        #     db_name="metaflow",
-        #     db_security_group=metadata_database.db_security_group,
-        #     ecs_cluster_in_vpc=ecs_cluster_in_vpc,
-        #     alb=alb,
-        # )
+        metadata_svc = MetadataService(
+            self,
+            "metaflow-metadata-service",
+            db_host=metadata_database.db_instance.db_instance_endpoint_address,
+            db_port=metadata_database.db_instance.db_instance_endpoint_port,
+            db_user=metadata_database.db_instance.secret.secret_value_from_json(
+                "username"
+            ).to_string(),
+            db_password_token=metadata_database.db_instance.secret.secret_value_from_json(
+                "password"
+            ).to_string(),
+            db_name="metaflow",
+            db_security_group=metadata_database.db_security_group,
+            ecs_cluster_in_vpc=ecs_cluster_in_vpc,
+            alb=alb,
+        )
 
         if enable_ui:
             ui_backend_svc = UIBackendService(
                 self,
                 "metaflow-ui-backend-service",
-                load_balancer_listener_port=3333,
+                load_balancer_listener_port=MetaflowUIBackendServiceConstants.CONTAINER_PORT,
                 db_host=metadata_database.db_instance.db_instance_endpoint_address,
                 db_port=metadata_database.db_instance.db_instance_endpoint_port,
                 db_user=metadata_database.db_instance.secret.secret_value_from_json(
@@ -195,14 +195,14 @@ class Metaflow(Construct):
                 alb=alb,
             )
 
-            # ui_frontend_svc = UIFrontendService(
-            #     self,
-            #     "metaflow-ui-frontend-service",
-            #     db_security_group=metadata_database.db_security_group,
-            #     ecs_cluster_in_vpc=ecs_cluster_in_vpc,
-            #     backend_url=ui_backend_svc.url,
-            #     alb=alb,
-            # )
+            ui_frontend_svc = UIFrontendService(
+                self,
+                "metaflow-ui-frontend-service",
+                db_security_group=metadata_database.db_security_group,
+                ecs_cluster_in_vpc=ecs_cluster_in_vpc,
+                backend_url=ui_backend_svc.url,
+                alb=alb,
+            )
 
             # expose outputs in the CloudFormation console
             # self.make_output("UIFrontendURL", ui_frontend_svc.url)

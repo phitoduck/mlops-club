@@ -132,7 +132,7 @@ class UIFrontendService(Construct):
             construct_id=self.namer("UIService"),
             load_balancer_to_container_port_mappings=[
                 PortMapping(
-                    listener_port=80, 
+                    listener_port=container_port, 
                     container_port=container_port, 
                     path_pattern="*"
                 ),
@@ -151,7 +151,6 @@ class UIFrontendService(Construct):
             load_balancer=alb,
             min_tasks=min_tasks,
             max_tasks=max_tasks,
-            service_security_groups=[db_security_group],
         )
 
         service_task_definition = ecs.FargateTaskDefinition(

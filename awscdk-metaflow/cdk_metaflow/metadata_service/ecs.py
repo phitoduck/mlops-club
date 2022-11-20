@@ -15,6 +15,9 @@ from cdk_metaflow.config import (
     MetaflowUIFrontendServiceConstants,
 )
 
+from cdk_metaflow.webservice import Webservice, PortMapping
+from cdk_metaflow.utils import make_namer_fn, TNamerFn
+
 from aws_cdk import aws_ec2 as ec2
 
 class MetadataService(Construct):
@@ -56,7 +59,7 @@ class MetadataService(Construct):
     def __init__(
         self,
         scope: "Construct",
-        id: str,
+        construct_id: str,
         db_host: str,
         db_port: str,
         db_user: str,
@@ -69,12 +72,14 @@ class MetadataService(Construct):
         max_container_cpu_mb: Optional[int] = MetaflowMetadataServiceConstants.CONTAINER_CPU,
         max_container_memory_mb: Optional[int] = MetaflowMetadataServiceConstants.CONTAINER_MEMORY,
         desired_container_count: Optional[int] = MetaflowMetadataServiceConstants.DESIRED_COUNT,
+        min_tasks: Optional[int] = 1,
+        max_tasks: Optional[int] = 1,
         **kwargs,
     ) -> None:
         """Initialize a MetadataService construct.
 
         :param scope: parent construct/stack
-        :param id: construct id
+        :param construct_id: construct id
         :param db_host: host of the relational database
         :param db_port: port of the relational database
         :param db_user: user in the relational database
@@ -88,46 +93,79 @@ class MetadataService(Construct):
         :param max_container_memory_mb: max RAM of the container task. See ECS fargate memory docs for valid values.
         :param desired_container_count: how many instances to default to after high traffic spikes settle down. TODO: should we expose the min count and max count?
         """
-        super().__init__(scope, id, **kwargs)
+        super().__init__(scope, construct_id, **kwargs)
+        self.namer: TNamerFn = make_namer_fn(construct_id)
 
-        svc = ecs_patterns.ApplicationLoadBalancedFargateService(
+        Webservice(
             self,
-            "metaflow-metadata-service-v2",
-            cluster=ecs_cluster_in_vpc,
-            task_subnets=ec2.SubnetSelection(
-                subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
-            ),
-            security_groups=[db_security_group],
-            assign_public_ip=True,
-            load_balancer=alb,
-            circuit_breaker=ecs.DeploymentCircuitBreaker(rollback=True),
-            listener_port=80,
-            # certificate=tls_cert,
-            # protocol=elbv2.ApplicationProtocol.HTTPS,
-            desired_count=desired_container_count,
-            cpu=max_container_cpu_mb,
-            memory_limit_mib=max_container_memory_mb,
-            task_image_options=ecs_patterns.ApplicationLoadBalancedTaskImageOptions(
-                image=ecs.ContainerImage.from_registry(
-                    MetaflowMetadataServiceConstants.IMAGE_URL
+            construct_id=self.namer("Webservice"),
+            load_balancer_to_container_port_mappings=[
+                PortMapping(
+                    listener_port=80, 
+                    container_port=container_port, 
+                    path_pattern="*"
                 ),
-                container_port=container_port,
-                environment={
-                    "MF_METADATA_DB_HOST": db_host,
-                    "MF_METADATA_DB_PORT": db_port,
-                    "MF_METADATA_DB_USER": db_user,
-                    "MF_METADATA_DB_PSWD": db_password_token,
-                    "MF_METADATA_DB_NAME": db_name,
-                },
-                log_driver=ecs.LogDriver.aws_logs(stream_prefix="metadata-service"),
+            ],
+            docker_image=ecs.ContainerImage.from_registry(
+                MetaflowMetadataServiceConstants.IMAGE_URL
             ),
+            health_check_path=MetaflowMetadataServiceConstants.HEALTHCHECK_PATH,
+            container_env_vars_overrides={
+                "MF_METADATA_DB_HOST": db_host,
+                "MF_METADATA_DB_PORT": db_port,
+                "MF_METADATA_DB_USER": db_user,
+                "MF_METADATA_DB_PSWD": db_password_token,
+                "MF_METADATA_DB_NAME": db_name,
+            },
+            ecs_cluster_in_vpc=ecs_cluster_in_vpc,
+            ecs_memory_limit_mb=max_container_memory_mb,
+            ecs_cpu_size=max_container_cpu_mb,
+            ecs_desired_num_instances=desired_container_count,
+            load_balancer=alb,
+            min_tasks=min_tasks,
+            max_tasks=max_tasks,
+            service_security_groups=[db_security_group],
         )
+
+
+        # svc = ecs_patterns.ApplicationLoadBalancedFargateService(
+        #     self,
+        #     "metaflow-metadata-service-v2",
+        #     cluster=ecs_cluster_in_vpc,
+        #     task_subnets=ec2.SubnetSelection(
+        #         subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
+        #     ),
+        #     security_groups=[db_security_group],
+        #     assign_public_ip=True,
+        #     load_balancer=alb,
+        #     circuit_breaker=ecs.DeploymentCircuitBreaker(rollback=True),
+        #     listener_port=80,
+        #     # certificate=tls_cert,
+        #     # protocol=elbv2.ApplicationProtocol.HTTPS,
+        #     desired_count=desired_container_count,
+        #     cpu=max_container_cpu_mb,
+        #     memory_limit_mib=max_container_memory_mb,
+        #     task_image_options=ecs_patterns.ApplicationLoadBalancedTaskImageOptions(
+        #         image=ecs.ContainerImage.from_registry(
+        #             MetaflowMetadataServiceConstants.IMAGE_URL
+        #         ),
+        #         container_port=container_port,
+        #         environment={
+        #             "MF_METADATA_DB_HOST": db_host,
+        #             "MF_METADATA_DB_PORT": db_port,
+        #             "MF_METADATA_DB_USER": db_user,
+        #             "MF_METADATA_DB_PSWD": db_password_token,
+        #             "MF_METADATA_DB_NAME": db_name,
+        #         },
+        #         log_driver=ecs.LogDriver.aws_logs(stream_prefix="metadata-service"),
+        #     ),
+        # )
 
         # healthcheck ECS will use to determine whether to terminate/restart the container
-        svc.target_group.configure_health_check(
-            port=str(container_port),
-            path=MetaflowMetadataServiceConstants.HEALTHCHECK_PATH,
-        )
+        # svc.target_group.configure_health_check(
+        #     port=str(container_port),
+        #     path=MetaflowMetadataServiceConstants.HEALTHCHECK_PATH,
+        # )
 
-        self.url = f"{alb.load_balancer_dns_name}"
+        self.url = f"http://{alb.load_balancer_dns_name}"
         self.docs_url = f"{self.url}/api/doc"
