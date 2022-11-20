@@ -153,27 +153,4 @@ class UIFrontendService(Construct):
             max_tasks=max_tasks,
         )
 
-        service_task_definition = ecs.FargateTaskDefinition(
-            self,
-            "metaflow-ui-frontend-service-task-definition",
-            cpu=max_container_cpu_mb,
-            memory_limit_mib=max_container_memory_mb,
-        )
-
-        service_task_definition.add_container(
-            id="ui-frontend-service-container-definition",
-            logging=ecs.LogDriver.aws_logs(stream_prefix="metadata-ui"),
-            image=ecs.ContainerImage.from_registry(
-                MetaflowUIFrontendServiceConstants.IMAGE_URL
-            ),
-            port_mappings=[
-                ecs.PortMapping(
-                    container_port=container_port
-                )
-            ],
-            environment={
-                "METAFLOW_SERVICE": backend_url
-            },
-        )
-
         self.url = f"http://{alb.load_balancer_dns_name}"
