@@ -3,7 +3,7 @@
 #
 # Execute any commands in this file by running "just <command name>", e.g. "just install".
 
-AWS_PROFILE := "ben-ai-sandbox"
+AWS_PROFILE := "mlops-club"
 AWS_REGION := "us-west-2"
 
 # install the project's python packages and other useful
