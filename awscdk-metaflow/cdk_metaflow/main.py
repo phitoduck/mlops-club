@@ -198,7 +198,6 @@ class Metaflow(Construct):
             ui_frontend_svc = UIFrontendService(
                 self,
                 "metaflow-ui-frontend-service",
-                db_security_group=metadata_database.db_security_group,
                 ecs_cluster_in_vpc=ecs_cluster_in_vpc,
                 backend_url=ui_backend_svc.url,
                 alb=alb,

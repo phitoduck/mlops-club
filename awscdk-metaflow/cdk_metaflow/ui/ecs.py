@@ -110,7 +110,6 @@ class UIFrontendService(Construct):
         self,
         scope: Construct,
         construct_id: str,
-        db_security_group: ec2.SecurityGroup,
         ecs_cluster_in_vpc: ecs.Cluster,
         alb: elbv2.ApplicationLoadBalancer,
         backend_url: str,
